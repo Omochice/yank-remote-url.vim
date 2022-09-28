@@ -3,12 +3,15 @@ set cpo&vim
 
 let s:cache = {}
 
-function! s:init() abort
+function! yank_remote_url#_internal_initialize() abort
   if !empty(s:cache)
     return
   endif
 
-  cal s:set_cache()
+  " set cache as initialize
+  call timer_start(0, { -> s:set_cache() })
+
+  " register auto-cache
   augroup yank_remote_url_origin#internal_augroup
     autocmd!
     autocmd BufEnter * call timer_start(0, { -> s:set_cache() })
