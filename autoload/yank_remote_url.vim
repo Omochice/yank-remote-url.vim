@@ -10,14 +10,16 @@ endfunction
 
 let s:cache = {}
 
-function! yank_remote_url#_internal_initialize() abort
+function! s:init() abort
   if !empty(s:cache)
     return
   endif
 
   " set cache as initialize
-  call timer_start(0, { -> s:set_cache() })
+  call s:set_cache()
+endfunction
 
+function! yank_remote_url#_internal_enable_auto_cache() abort
   " register auto-cache
   augroup yank_remote_url_origin#internal_augroup
     autocmd!
@@ -163,7 +165,7 @@ endfunction
 " GitBacket: path/to/repo/blob/path/to/file#L1+L~
 
 function! yank_remote_url#generate_url(line1, ...) abort
-  call yank_remote_url#_internal_initialize()
+  call s:init()
   if s:cache.git_root ==# ''
     call s:echo_error('It seems like not git directory.')
     return ''
