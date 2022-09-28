@@ -1,6 +1,13 @@
 let s:save_cpo = &cpo
 set cpo&vim
 
+function s:echo_error(msg) abort
+  echohl ErrorMsg
+  echomsg printf('[yank-remote-url.vim] %s',
+        \  type(a:msg) ==# v:t_string ? a:msg : string(a:msg))
+  echohl None
+endfunction
+
 let s:cache = {}
 
 function! yank_remote_url#_internal_initialize() abort
@@ -19,13 +26,33 @@ function! yank_remote_url#_internal_initialize() abort
 endfunction
 
 function s:set_cache() abort
-  let l:url = s:get_remote_url('origin')
-  let s:cache = {
-        \ 'remote_url': s:normalize_url(l:url),
-        \ 'current_branch': s:get_current_branch(),
-        \ 'current_hash': s:get_current_commit_hash(),
-        \ 'type': s:remote_type(l:url),
-        \ }
+  let l:git_root = s:find_git_root()
+  if empty(l:git_root)
+    let s:cache = {
+          \ 'remote_url': '',
+          \ 'current_branch': '',
+          \ 'current_hash': '',
+          \ 'type': '',
+          \ 'path': '',
+          \ }
+  else
+    let l:url = s:get_remote_url(get(g:, 'yank_remote_url#remote_name', 'origin'))
+    let s:cache = {
+          \ 'remote_url': s:normalize_url(l:url),
+          \ 'current_branch': s:get_current_branch(),
+          \ 'current_hash': s:get_current_commit_hash(),
+          \ 'type': s:remote_type(l:url),
+          \ 'git_root': l:git_root,
+          \ 'path': s:get_path(fnamemodify(expand('%'), ':p')),
+          \ }
+  endif
+endfunction
+
+function s:is_current_file_tracked() abort
+  if empty(s:cache.path)
+    return v:false
+  endif
+  return v:true
 endfunction
 
 function! s:remote_type(url) abort
@@ -51,6 +78,9 @@ endfunction
 
 function! s:get_remote_url(origin) abort
   let l:got = systemlist('git remote get-url --all ' .. a:origin)[0]
+  if v:shell_error !=# 0
+    return ''
+  endif
   return l:got
 endfunction
 
@@ -64,6 +94,14 @@ function! s:get_current_commit_hash() abort
   return l:hash
 endfunction
 
+function! s:get_path(path) abort
+  let l:path = systemlist('git ls-files ' .. a:path)
+  if empty(l:path)
+    return ''
+  endif
+  return l:path[0]
+endfunction
+
 function! s:yank_to_clipboard(register) abort
   let l:raw_url = s:get_remote_url()
   let l:normalized = s:normalize(l:raw_url)
@@ -72,6 +110,7 @@ endfunction
 
 function! s:normalize_linenumber(line1, line2) abort
   let l:head = '#'
+
   if a:line1 ==# a:line2
     return l:head .. 'L' .. string(a:line1)
   endif
@@ -106,9 +145,7 @@ function! s:yank(string) abort
     execute 'let' '@*' '=' string(a:string)
     return
   else
-    echohl ErrorMsg
-    echomsg printf('[yank-remote-url.vim] Unsupprted clipboard option.')
-    echohl None
+    call s:echo_error('Unsupported clipboard option.')
   endif
 endfunction
 
@@ -125,29 +162,41 @@ endfunction
 " GitLab: path/to/repo/~/blob/path/to/file#L1-L~
 " GitBacket: path/to/repo/blob/path/to/file#L1+L~
 
-function! yank_remote_url#generate_url(line1, line2) abort
-  call s:init()
-  let l:git_root = s:find_git_root()
-  if l:git_root ==# ''
-    return
+function! yank_remote_url#generate_url(line1, ...) abort
+  call yank_remote_url#_internal_initialize()
+  if s:cache.git_root ==# ''
+    call s:echo_error('It seems like not git directory.')
+    return ''
+  endif
+  if s:cache.remote_url ==# ''
+    call s:echo_error('It seems that this repository has no remote one.')
+    return ''
+  endif
+  if s:cache.path ==# ''
+    call s:echo_error('It seems untracked file.')
+    return ''
   endif
 
-  let l:modifier = [':s', l:git_root, '']->join('|')
-  let l:relative_path = fnamemodify(expand('%'), l:modifier)
+  let l:line2 = a:0 ==# 0 ? a:line1 : a:1
   let l:base_url = s:cache.remote_url
   let l:path_to_line = s:path_join(
         \ l:base_url,
         \ 'blob',
-        \ s:cache.current_branch,
-        \ l:relative_path,
-        \ ) .. s:normalize_linenumber(a:line1, a:line2)
+        \ get(g:, 'yank_remote_url#use_direct_hash', v:true)
+        \   ? s:cache.current_hash
+        \   : s:cache.current_branch,
+        \ s:cache.path,
+        \ ) .. s:normalize_linenumber(a:line1, l:line2)
 
   return l:path_to_line
 endfunction
 
-function! yank_remote_url#yank_url(line1, line2) abort
-  let l:url = yank_remote_url#generate_url(a:line1, a:line2)
-  call s:yank(l:url)
+function! yank_remote_url#yank_url(line1, ...) abort
+  let l:line2 = a:0 ==# 0 ? a:line1 : a:1
+  let l:url = yank_remote_url#generate_url(a:line1, l:line2)
+  if !empty(l:url)
+    call s:yank(l:url)
+  endif
 endfunction
 
 let &cpo = s:save_cpo
