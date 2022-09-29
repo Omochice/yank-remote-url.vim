@@ -179,7 +179,20 @@ function! yank_remote_url#generate_url(line1, ...) abort
     return ''
   endif
 
+  let l:line1 = a:line1
   let l:line2 = a:0 ==# 0 ? a:line1 : a:1
+
+  " make selectable line number in use command as <Cmd>~<CR>
+  let l:another = line('v')
+  if l:line1 == l:line2 && l:line1 != l:another
+    if l:another < l:line1
+      let l:line1 = l:another
+    else
+      let l:line2 = l:another
+    endif
+  endif
+  echomsg l:line1 .. ' ' .. l:line2
+
   let l:base_url = s:cache.remote_url
   let l:path_to_line = s:path_join(
         \ l:base_url,
