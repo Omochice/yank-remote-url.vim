@@ -191,7 +191,6 @@ function! yank_remote_url#generate_url(line1, ...) abort
       let l:line2 = l:another
     endif
   endif
-  echomsg l:line1 .. ' ' .. l:line2
 
   let l:base_url = s:cache.remote_url
   let l:path_to_line = s:path_join(
