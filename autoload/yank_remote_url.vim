@@ -72,6 +72,7 @@ endfunction
 
 function! s:normalize_url(url) abort
   let l:normalized = a:url
+        \ ->substitute('^git@github.com:', 'https://github.com/', '')
         \ ->substitute('^ssh://git@', 'https://', '')
         \ ->substitute('\(//.\+\)\(:\d\+\)', '\1', '')
         \ ->substitute('\.git$', '', '')
