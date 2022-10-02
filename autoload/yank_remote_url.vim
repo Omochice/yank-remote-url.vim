@@ -11,7 +11,7 @@ endfunction
 let s:cache = {}
 
 function! s:init() abort
-  if !empty(s:cache)
+  if !empty(s:cache) && get(g:, 'yank_remote_url#enable_cache', v:false)
     return
   endif
 
@@ -161,6 +161,7 @@ function! s:path_join(...) abort
         \ ->join('/')
 endfunction
 
+" NOTE:
 " GitHub: path/to/repo/blob/path/to/file#L1+L~
 " GitLab: path/to/repo/~/blob/path/to/file#L1-L~
 " GitBacket: path/to/repo/blob/path/to/file#L1+L~

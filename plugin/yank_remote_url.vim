@@ -6,7 +6,8 @@ let g:loaded_yank_remote_url = v:true
 let s:save_cpo = &cpo
 set cpo&vim
 
-command! -range YankRemoteURL call yank_remote_url#yank_url(<line1>, <line2>)
+command! -range YankRemoteURL call timer_start(0,
+      \ { -> yank_remote_url#yank_url(<line1>, <line2>)})
 
 if get(g:, 'yank_remote_url#auto_cache', v:false)
   call yank_remote_url#_internal_enable_auto_cache()
