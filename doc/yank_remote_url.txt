@@ -60,7 +60,7 @@ FUNCTIONS					*yank-remote-url-functions*
 ==============================================================================
 VARIABLES					*yank-remote-url-variables*
 
-					*yank_remote_url#auto_cache*
+					*yank_remote_url#enable_cache*
 - `yank_remote_url#enable_cache`
 	Enable auto-cache that hook on |BufEnter|.
 	default: |v:false|
