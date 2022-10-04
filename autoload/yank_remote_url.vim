@@ -45,7 +45,9 @@ function s:set_cache() abort
           \ 'current_hash': s:get_current_commit_hash(),
           \ 'type': s:remote_type(l:url),
           \ 'git_root': l:git_root,
-          \ 'path': s:get_path(fnamemodify(expand('%'), ':p')),
+          \ 'path': expand('%')
+          \       ->fnamemodify(':p')
+          \       ->substitute('^' .. l:git_root, '', ''),
           \ }
   endif
 endfunction
@@ -97,12 +99,7 @@ function! s:get_current_commit_hash() abort
   return l:hash
 endfunction
 
-function! s:get_path(path) abort
-  let l:path = systemlist('git ls-files ' .. a:path)
-  if empty(l:path)
-    return ''
-  endif
-  return l:path[0]
+function! s:get_path(path, root) abort
 endfunction
 
 function! s:yank_to_clipboard(register) abort
@@ -204,6 +201,9 @@ function! yank_remote_url#generate_url(line1, ...) abort
         \ s:cache.path,
         \ ) .. s:normalize_linenumber(a:line1, l:line2)
 
+  if get(g:, 'yank_remote_url#_debug', v:false)
+    echomsg '[debug] cache is: ' .. string(s:cache)
+  endif
   return l:path_to_line
 endfunction
 
