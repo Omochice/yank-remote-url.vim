@@ -99,9 +99,6 @@ function! s:get_current_commit_hash() abort
   return l:hash
 endfunction
 
-function! s:get_path(path, root) abort
-endfunction
-
 function! s:yank_to_clipboard(register) abort
   let l:raw_url = s:get_remote_url()
   let l:normalized = s:normalize(l:raw_url)
