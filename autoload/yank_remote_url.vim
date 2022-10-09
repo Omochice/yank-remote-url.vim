@@ -99,12 +99,6 @@ function! s:get_current_commit_hash() abort
   return l:hash
 endfunction
 
-function! s:yank_to_clipboard(register) abort
-  let l:raw_url = s:get_remote_url()
-  let l:normalized = s:normalize(l:raw_url)
-  execute 'let @' .. a:register .. ' = ' .. string(l:normalized)
-endfunction
-
 function! s:normalize_linenumber(line1, line2) abort
   let l:head = '#'
 
@@ -132,17 +126,10 @@ function! s:find_git_root() abort
 endfunction
 
 function! s:yank(string) abort
-  let l:clipboards = &clipboard->split(',')
-  if l:clipboards->index('unnamedplus') !=# -1 ||
-        \ l:clipboards->index('autoselectplus')
-    execute 'let' '@+' '=' string(a:string)
-    return
-  if l:clipboards->index('unnamed') !=# -1 ||
-        \ l:clipboards->index('autoselect') !=# -1
-    execute 'let' '@*' '=' string(a:string)
-    return
+  if exists('v:register')
+    execute 'let' '@' .. v:register '=' string(a:string)
   else
-    call s:echo_error('Unsupported clipboard option.')
+    call s:echo_error('v:register is unknown')
   endif
 endfunction
 
