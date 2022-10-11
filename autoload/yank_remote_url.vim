@@ -8,10 +8,8 @@ function s:echo_error(msg) abort
   echohl None
 endfunction
 
-let s:cache = {}
-
 function! s:init() abort
-  if !empty(s:cache) && get(g:, 'yank_remote_url#enable_cache', v:false)
+  if exists('b:yank_remote_url_cache')
     return
   endif
 
@@ -30,7 +28,7 @@ endfunction
 function s:set_cache() abort
   let l:git_root = s:find_git_root()
   if empty(l:git_root)
-    let s:cache = {
+    let b:yank_remote_url_cache = {
           \ 'remote_url': '',
           \ 'current_branch': '',
           \ 'current_hash': '',
@@ -39,7 +37,7 @@ function s:set_cache() abort
           \ }
   else
     let l:url = s:get_remote_url(get(g:, 'yank_remote_url#remote_name', 'origin'))
-    let s:cache = {
+    let b:yank_remote_url_cache = {
           \ 'remote_url': s:normalize_url(l:url),
           \ 'current_branch': s:get_current_branch(),
           \ 'current_hash': s:get_current_commit_hash(),
@@ -53,7 +51,7 @@ function s:set_cache() abort
 endfunction
 
 function s:is_current_file_tracked() abort
-  if empty(s:cache.path)
+  if empty(b:yank_remote_url_cache.path)
     return v:false
   endif
   return v:true
@@ -106,7 +104,7 @@ function! s:normalize_linenumber(line1, line2) abort
     return l:head .. 'L' .. string(a:line1)
   endif
 
-  let l:line_separator = s:cache.type ==# 'gitlab' ? '-' : '+'
+  let l:line_separator = b:yank_remote_url_cache.type ==# 'gitlab' ? '-' : '+'
   return l:head .. 'L' .. string(a:line1) .. l:line_separator .. 'L' .. string(a:line2)
 endfunction
 
@@ -149,15 +147,15 @@ endfunction
 
 function! yank_remote_url#generate_url(line1, ...) abort
   call s:init()
-  if s:cache.git_root ==# ''
+  if b:yank_remote_url_cache.git_root ==# ''
     call s:echo_error('It seems like not git directory.')
     return ''
   endif
-  if s:cache.remote_url ==# ''
+  if b:yank_remote_url_cache.remote_url ==# ''
     call s:echo_error('It seems that this repository has no remote one.')
     return ''
   endif
-  if s:cache.path ==# ''
+  if b:yank_remote_url_cache.path ==# ''
     call s:echo_error('It seems untracked file.')
     return ''
   endif
@@ -175,18 +173,18 @@ function! yank_remote_url#generate_url(line1, ...) abort
     endif
   endif
 
-  let l:base_url = s:cache.remote_url
+  let l:base_url = b:yank_remote_url_cache.remote_url
   let l:path_to_line = s:path_join(
         \ l:base_url,
         \ 'blob',
         \ get(g:, 'yank_remote_url#use_direct_hash', v:true)
-        \   ? s:cache.current_hash
-        \   : s:cache.current_branch,
-        \ s:cache.path,
+        \   ? b:yank_remote_url_cache.current_hash
+        \   : b:yank_remote_url_cache.current_branch,
+        \ b:yank_remote_url_cache.path,
         \ ) .. s:normalize_linenumber(a:line1, l:line2)
 
   if get(g:, 'yank_remote_url#_debug', v:false)
-    echomsg '[debug] cache is: ' .. string(s:cache)
+    echomsg '[debug] cache is: ' .. string(b:yank_remote_url_cache)
   endif
   return l:path_to_line
 endfunction
