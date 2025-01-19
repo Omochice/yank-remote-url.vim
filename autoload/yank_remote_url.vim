@@ -148,16 +148,23 @@ endfunction
 function! yank_remote_url#generate_url(line1, ...) abort
   call s:init()
   if b:yank_remote_url_cache.git_root ==# ''
-    call s:echo_error('It seems like not git directory.')
-    return ''
+    return #{
+          \ ok: v:false,
+          \ err: 'It seems like not git directory.',
+          \ }
   endif
   if b:yank_remote_url_cache.remote_url ==# ''
-    call s:echo_error('It seems that this repository has no remote one.')
-    return ''
+    return #{
+          \ ok: v:false,
+          \ err: 'It seems that this repository has no remote one.',
+          \ }
   endif
   if b:yank_remote_url_cache.path ==# ''
-    call s:echo_error('It seems untracked file.')
-    return ''
+    return #{
+          \ ok: v:false,
+          \ err: 'It seems untracked file.',
+          \ }
+    }
   endif
 
   let l:line1 = a:line1
@@ -186,15 +193,20 @@ function! yank_remote_url#generate_url(line1, ...) abort
   if get(g:, 'yank_remote_url#_debug', v:false)
     echomsg '[debug] cache is: ' .. string(b:yank_remote_url_cache)
   endif
-  return l:path_to_line
+  return #{
+        \ ok: v:true,
+        \ value: l:path_to_line,
+        \ }
 endfunction
 
 function! yank_remote_url#yank_url(line1, ...) abort
   let l:line2 = a:0 ==# 0 ? a:line1 : a:1
-  let l:url = yank_remote_url#generate_url(a:line1, l:line2)
-  if !empty(l:url)
-    call s:yank(l:url)
+  let l:res = yank_remote_url#generate_url(a:line1, l:line2)
+  if !l:res.ok
+    call s:echo_error(l:res.err)
+    return
   endif
+  call s:yank(l:res.value)
 endfunction
 
 let &cpo = s:save_cpo
