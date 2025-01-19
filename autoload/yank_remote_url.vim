@@ -28,22 +28,22 @@ endfunction
 function s:set_cache() abort
   const l:git_root = s:find_git_root()
   if empty(l:git_root)
-    let b:yank_remote_url_cache = {
-          \ 'remote_url': '',
-          \ 'current_branch': '',
-          \ 'current_hash': '',
-          \ 'type': '',
-          \ 'path': '',
+    let b:yank_remote_url_cache = #{
+          \ remote_url: '',
+          \ current_branch: '',
+          \ current_hash: '',
+          \ type: '',
+          \ path: '',
           \ }
   else
     const l:url = s:get_remote_url(get(g:, 'yank_remote_url#remote_name', 'origin'))
-    let b:yank_remote_url_cache = {
-          \ 'remote_url': s:normalize_url(l:url),
-          \ 'current_branch': s:get_current_branch(),
-          \ 'current_hash': s:get_current_commit_hash(),
-          \ 'type': s:remote_type(l:url),
-          \ 'git_root': l:git_root,
-          \ 'path': expand('%')
+    let b:yank_remote_url_cache = #{
+          \ remote_url: s:normalize_url(l:url),
+          \ current_branch: s:get_current_branch(),
+          \ current_hash: s:get_current_commit_hash(),
+          \ type: s:remote_type(l:url),
+          \ git_root: l:git_root,
+          \ path: expand('%')
           \       ->fnamemodify(':p')
           \       ->substitute('^' .. l:git_root, '', ''),
           \ }
