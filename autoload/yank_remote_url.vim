@@ -26,7 +26,7 @@ function! yank_remote_url#_internal_enable_auto_cache() abort
 endfunction
 
 function s:set_cache() abort
-  let l:git_root = s:find_git_root()
+  const l:git_root = s:find_git_root()
   if empty(l:git_root)
     let b:yank_remote_url_cache = {
           \ 'remote_url': '',
@@ -36,7 +36,7 @@ function s:set_cache() abort
           \ 'path': '',
           \ }
   else
-    let l:url = s:get_remote_url(get(g:, 'yank_remote_url#remote_name', 'origin'))
+    const l:url = s:get_remote_url(get(g:, 'yank_remote_url#remote_name', 'origin'))
     let b:yank_remote_url_cache = {
           \ 'remote_url': s:normalize_url(l:url),
           \ 'current_branch': s:get_current_branch(),
@@ -71,7 +71,7 @@ function! s:remote_type(url) abort
 endfunction
 
 function! s:normalize_url(url) abort
-  let l:normalized = a:url
+  const l:normalized = a:url
         \ ->substitute('^git@github.com:', 'https://github.com/', '')
         \ ->substitute('^ssh://git@', 'https://', '')
         \ ->substitute('\(//.\+\)\(:\d\+\)', '\1', '')
@@ -80,7 +80,7 @@ function! s:normalize_url(url) abort
 endfunction
 
 function! s:get_remote_url(origin) abort
-  let l:got = systemlist('git remote get-url --all ' .. a:origin)[0]
+  const l:got = systemlist('git remote get-url --all ' .. a:origin)[0]
   if v:shell_error !=# 0
     return ''
   endif
@@ -88,23 +88,23 @@ function! s:get_remote_url(origin) abort
 endfunction
 
 function! s:get_current_branch() abort
-  let l:branch = systemlist('git branch --show-current')[0]
+  const l:branch = systemlist('git branch --show-current')[0]
   return l:branch
 endfunction
 
 function! s:get_current_commit_hash() abort
-  let l:hash = systemlist('git rev-parse HEAD')[0]
+  const l:hash = systemlist('git rev-parse HEAD')[0]
   return l:hash
 endfunction
 
 function! s:normalize_linenumber(line1, line2) abort
-  let l:head = '#'
+  const l:head = '#'
 
   if a:line1 ==# a:line2
     return l:head .. 'L' .. string(a:line1)
   endif
 
-  let l:line_separator = b:yank_remote_url_cache.type ==# 'gitlab' ? '-' : '+'
+  const l:line_separator = b:yank_remote_url_cache.type ==# 'gitlab' ? '-' : '+'
   return l:head .. 'L' .. string(a:line1) .. l:line_separator .. 'L' .. string(a:line2)
 endfunction
 
@@ -114,7 +114,7 @@ function! s:find_git_root() abort
     if isdirectory(l:path .. '/.git')
       return l:path
     endif
-    let l:modified = fnamemodify(l:path, ':h')
+    const l:modified = fnamemodify(l:path, ':h')
     if l:modified ==# l:path
       " is /
       return ''
@@ -148,23 +148,30 @@ endfunction
 function! yank_remote_url#generate_url(line1, ...) abort
   call s:init()
   if b:yank_remote_url_cache.git_root ==# ''
-    call s:echo_error('It seems like not git directory.')
-    return ''
+    return #{
+          \ ok: v:false,
+          \ err: 'It seems like not git directory.',
+          \ }
   endif
   if b:yank_remote_url_cache.remote_url ==# ''
-    call s:echo_error('It seems that this repository has no remote one.')
-    return ''
+    return #{
+          \ ok: v:false,
+          \ err: 'It seems that this repository has no remote one.',
+          \ }
   endif
   if b:yank_remote_url_cache.path ==# ''
-    call s:echo_error('It seems untracked file.')
-    return ''
+    return #{
+          \ ok: v:false,
+          \ err: 'It seems untracked file.',
+          \ }
+    }
   endif
 
   let l:line1 = a:line1
   let l:line2 = a:0 ==# 0 ? a:line1 : a:1
 
   " make selectable line number in use command as <Cmd>~<CR>
-  let l:another = line('v')
+  const l:another = line('v')
   if l:line1 == l:line2 && l:line1 != l:another
     if l:another < l:line1
       let l:line1 = l:another
@@ -173,8 +180,8 @@ function! yank_remote_url#generate_url(line1, ...) abort
     endif
   endif
 
-  let l:base_url = b:yank_remote_url_cache.remote_url
-  let l:path_to_line = s:path_join(
+  const l:base_url = b:yank_remote_url_cache.remote_url
+  const l:path_to_line = s:path_join(
         \ l:base_url,
         \ 'blob',
         \ get(g:, 'yank_remote_url#use_direct_hash', v:true)
@@ -186,15 +193,20 @@ function! yank_remote_url#generate_url(line1, ...) abort
   if get(g:, 'yank_remote_url#_debug', v:false)
     echomsg '[debug] cache is: ' .. string(b:yank_remote_url_cache)
   endif
-  return l:path_to_line
+  return #{
+        \ ok: v:true,
+        \ value: l:path_to_line,
+        \ }
 endfunction
 
 function! yank_remote_url#yank_url(line1, ...) abort
-  let l:line2 = a:0 ==# 0 ? a:line1 : a:1
-  let l:url = yank_remote_url#generate_url(a:line1, l:line2)
-  if !empty(l:url)
-    call s:yank(l:url)
+  const l:line2 = a:0 ==# 0 ? a:line1 : a:1
+  const l:res = yank_remote_url#generate_url(a:line1, l:line2)
+  if !l:res.ok
+    call s:echo_error(l:res.err)
+    return
   endif
+  call s:yank(l:res.value)
 endfunction
 
 let &cpo = s:save_cpo
