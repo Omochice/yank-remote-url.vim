@@ -26,26 +26,36 @@ function! yank_remote_url#_internal_enable_auto_cache() abort
 endfunction
 
 function s:set_cache() abort
-  const l:git_root = s:find_git_root()
-  if empty(l:git_root)
+  const l:git_root = s:find_git_root(fnamemodify(expand('%'), ':p'))
+  if !l:git_root.ok
     let b:yank_remote_url_cache = #{
           \ remote_url: '',
           \ current_branch: '',
           \ current_hash: '',
           \ path: '',
           \ }
-  else
-    const l:url = s:get_remote_url(get(g:, 'yank_remote_url#remote_name', 'origin'))
-    let b:yank_remote_url_cache = #{
-          \ remote_url: s:normalize_url(l:url),
-          \ current_branch: s:get_current_branch(),
-          \ current_hash: s:get_current_commit_hash(),
-          \ git_root: l:git_root,
-          \ path: expand('%')
-          \       ->fnamemodify(':p')
-          \       ->substitute('^' .. l:git_root, '', ''),
-          \ }
+    return
   endif
+  const l:res = s:get_current_revision_info(l:git_root.value)
+  if !l:res.ok
+    let b:yank_remote_url_cache = #{
+          \ remote_url: '',
+          \ current_branch: '',
+          \ current_hash: '',
+          \ path: '',
+          \ }
+    return
+  endif
+  const l:url = s:get_remote_url(get(g:, 'yank_remote_url#remote_name', 'origin'))
+  let b:yank_remote_url_cache = #{
+        \ remote_url: s:normalize_url(l:url),
+        \ current_branch: l:res.value.branch,
+        \ current_hash: l:res.value.commit,
+        \ git_root: l:git_root.value,
+        \ path: expand('%')
+        \       ->fnamemodify(':p')
+        \       ->substitute('^' .. l:git_root.value, '', ''),
+        \ }
 endfunction
 
 function s:is_current_file_tracked() abort
@@ -90,14 +100,43 @@ function! s:get_remote_url(origin) abort
   return l:got
 endfunction
 
-function! s:get_current_branch() abort
-  const l:branch = systemlist('git branch --show-current')[0]
-  return l:branch
-endfunction
+function s:get_current_revision_info(git_root) abort
+  const l:head_file = a:git_root .. '/.git/HEAD'
+  if !filereadable(l:head_file)
+    return #{
+          \ ok: v:false,
+          \ err: l:head_file .. ' file is not found.',
+          \ }
+  endif
 
-function! s:get_current_commit_hash() abort
-  const l:hash = systemlist('git rev-parse HEAD')[0]
-  return l:hash
+  const l:head_content = readfile(l:head_file)->get(0, v:null)
+  if l:head_content ==# v:null
+    return #{
+          \ ok: v:false,
+          \ err: 'HEAD file is empty.',
+          \ }
+  endif
+  if l:head_content !~ '^ref: '
+    return #{
+          \ ok: v:false,
+          \ err: 'HEAD file is not ref: refs/heads/... format.',
+          \ }
+  endif
+  const l:branch_name = l:head_content->substitute('^ref: refs/heads/', '', '')
+  const l:commit_hash = readfile('.git/' .. substitute(l:head_content, '^ref: ', '', ''))->get(0, v:null)
+  if l:commit_hash ==# v:null
+    return #{
+          \ ok: v:false,
+          \ err: 'Commit hash is empty.',
+          \ }
+  endif
+  return #{
+        \ ok: v:true,
+        \ value: #{
+        \   branch: l:branch_name,
+        \   commit: l:commit_hash,
+        \ }
+        \ }
 endfunction
 
 function! s:normalize_linenumber(line1, line2) abort
@@ -110,16 +149,22 @@ function! s:normalize_linenumber(line1, line2) abort
   return l:head .. 'L' .. string(a:line1) .. l:sep  .. 'L' .. string(a:line2)
 endfunction
 
-function! s:find_git_root() abort
-  let l:path = fnamemodify(expand('%'), ':p')
+function! s:find_git_root(start_path) abort
+  let l:path = a:start_path
   while v:true
     if isdirectory(l:path .. '/.git')
-      return l:path
+      return #{
+            \ ok: v:true,
+            \ value: l:path,
+            \ }
     endif
     let l:modified = fnamemodify(l:path, ':h')
     if l:modified ==# l:path
       " is /
-      return ''
+      return #{
+            \ ok: v:false,
+            \ err: $'{start_path} is non git repository',
+            \ }
     endif
     let l:path = l:modified
   endwhile
