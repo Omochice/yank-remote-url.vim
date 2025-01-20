@@ -114,7 +114,7 @@ function! s:find_git_root() abort
     if isdirectory(l:path .. '/.git')
       return l:path
     endif
-    const l:modified = fnamemodify(l:path, ':h')
+    let l:modified = fnamemodify(l:path, ':h')
     if l:modified ==# l:path
       " is /
       return ''
