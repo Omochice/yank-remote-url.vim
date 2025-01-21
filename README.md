@@ -63,6 +63,12 @@ This plugin provides some functions:
     If disable this, use current branch name instead.
     default: `v:true`
 
+- `yank_remote_url#remote_separator_dict`
+    Some registry use `+` or `-` as separator for url.
+    eg: `https://github.com/Omochice/yank-remote-url.vim/blob/main/doc/yank_remote_url.txt#L1+L5`.
+    This dictionary has the separator and URL match table.
+    default: `{ 'github.com': '+', 'gitlab': '-', 'gitbucket': '+' }`
+
 
 ## License
 
