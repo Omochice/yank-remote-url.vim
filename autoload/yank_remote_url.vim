@@ -32,7 +32,6 @@ function s:set_cache() abort
           \ remote_url: '',
           \ current_branch: '',
           \ current_hash: '',
-          \ type: '',
           \ path: '',
           \ }
   else
@@ -41,7 +40,6 @@ function s:set_cache() abort
           \ remote_url: s:normalize_url(l:url),
           \ current_branch: s:get_current_branch(),
           \ current_hash: s:get_current_commit_hash(),
-          \ type: s:remote_type(l:url),
           \ git_root: l:git_root,
           \ path: expand('%')
           \       ->fnamemodify(':p')
@@ -57,17 +55,22 @@ function s:is_current_file_tracked() abort
   return v:true
 endfunction
 
-function! s:remote_type(url) abort
-  if a:url =~# 'github.com'
-    return 'github'
-  elseif a:url =~# 'gitlab'
-    " is this ok for self-hosted?
-    return 'gitlab'
-  elseif a:url =~# 'gitbucket'
-    return 'gitbucket'
-  else
-    return 'unknown'
-  endif
+" is this ok for self-hosted?
+const s:default_remote_separator_dict = {
+      \ 'github.com': '+',
+      \ 'gitlab': '-',
+      \ 'gitbucket': '+',
+      \ }
+
+function! s:get_line_separator(url) abort
+  for [regexp, separtor] in items(get(g:, 'yank_remote_url#remote_separator_dict', s:default_remote_separator_dict))
+    if a:url =~# regexp
+      return separator
+    endif
+  endfor
+  " NOTE: fallback '+'
+  " Is it common?
+  return '+'
 endfunction
 
 function! s:normalize_url(url) abort
@@ -103,9 +106,8 @@ function! s:normalize_linenumber(line1, line2) abort
   if a:line1 ==# a:line2
     return l:head .. 'L' .. string(a:line1)
   endif
-
-  const l:line_separator = b:yank_remote_url_cache.type ==# 'gitlab' ? '-' : '+'
-  return l:head .. 'L' .. string(a:line1) .. l:line_separator .. 'L' .. string(a:line2)
+  const l:sep = s:get_line_separator(b:yank_remote_url_cache.remote_url)
+  return l:head .. 'L' .. string(a:line1) .. l:sep  .. 'L' .. string(a:line2)
 endfunction
 
 function! s:find_git_root() abort
