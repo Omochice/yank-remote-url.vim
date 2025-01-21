@@ -63,7 +63,7 @@ const s:default_remote_separator_dict = {
       \ }
 
 function! s:get_line_separator(url) abort
-  for [regexp, separtor] in items(get(g:, 'yank_remote_url#remote_separator_dict', s:default_remote_separator_dict))
+  for [regexp, separator] in items(get(g:, 'yank_remote_url#remote_separator_dict', s:default_remote_separator_dict))
     if a:url =~# regexp
       return separator
     endif
