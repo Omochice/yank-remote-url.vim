@@ -30,9 +30,9 @@ function s:set_cache() abort
   if !l:git_root.ok
     return l:git_root
   endif
-  const l:res = s:get_current_revision_info(l:git_root.value)
-  if !l:res.ok
-    return l:res
+  const l:revision = s:get_current_revision_info(l:git_root.value)
+  if !l:revision.ok
+    return l:revision
   endif
   const l:url = s:get_remote_url(
     \ l:git_root.value,
@@ -43,8 +43,8 @@ function s:set_cache() abort
   endif
   let b:yank_remote_url_cache = #{
         \ remote_url: s:normalize_url(l:url.value),
-        \ current_branch: l:res.value.branch,
-        \ current_hash: l:res.value.commit,
+        \ current_branch: l:revision.value.branch,
+        \ current_hash: l:revision.value.commit,
         \ git_root: l:git_root.value,
         \ path: expand('%')
         \       ->fnamemodify(':p')
