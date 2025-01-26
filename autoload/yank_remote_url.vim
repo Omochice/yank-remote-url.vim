@@ -113,7 +113,8 @@ function! s:get_remote_url(git_root, origin) abort
 endfunction
 
 function s:get_current_revision_info(git_root) abort
-  const l:head_file = a:git_root .. '/.git/HEAD'
+  const l:git_dir = a:git_root .. '/.git'
+  const l:head_file = l:git_dir .. '/HEAD'
   if !filereadable(l:head_file)
     return #{
           \ ok: v:false,
@@ -135,7 +136,7 @@ function s:get_current_revision_info(git_root) abort
           \ }
   endif
   const l:branch_name = l:head_content->substitute('^ref: refs/heads/', '', '')
-  const l:commit_hash = readfile('.git/' .. substitute(l:head_content, '^ref: ', '', ''))->get(0, v:null)
+  const l:commit_hash = readfile(l:git_dir .. '/' .. substitute(l:head_content, '^ref: ', '', ''))->get(0, v:null)
   if l:commit_hash ==# v:null
     return #{
           \ ok: v:false,
