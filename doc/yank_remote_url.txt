@@ -30,7 +30,7 @@ COMMANDS					*yank-remote-url-commands*
 	:'<,'>YankRemoteURL
 <
 						*yank-remote-url-register*
-	NOTE: When |v:register| is accessable, use its value.
+	NOTE: When |v:register| is accessible, use its value.
 
 ==============================================================================
 FUNCTIONS					*yank-remote-url-functions*
