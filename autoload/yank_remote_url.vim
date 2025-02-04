@@ -140,7 +140,7 @@ function s:get_current_revision_info(git_root) abort
   const l:refs = substitute(l:head_content, '^ref: ', '', '')
   const l:refs_file = l:git_dir .. '/' .. l:refs
   if !(l:refs_file->filereadable())
-    " NOTE: sometime the refs exists in `.git/packed_ref`
+    " NOTE: sometimes the refs exist in `.git/packed-refs`
     const l:packed_ref = s:parse_packed_refs(l:git_dir .. '/' .. 'packed-refs', l:refs)
     if !l:packed_ref.ok
       return l:packed_ref
