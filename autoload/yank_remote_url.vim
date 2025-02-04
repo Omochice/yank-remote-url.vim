@@ -137,7 +137,23 @@ function s:get_current_revision_info(git_root) abort
           \ }
   endif
   const l:branch_name = l:head_content->substitute('^ref: refs/heads/', '', '')
-  const l:commit_hash = readfile(l:git_dir .. '/' .. substitute(l:head_content, '^ref: ', '', ''))->get(0, v:null)
+  const l:refs = substitute(l:head_content, '^ref: ', '', '')
+  const l:refs_file = l:git_dir .. '/' .. l:refs
+  if !(l:refs_file->filereadable())
+    " NOTE: sometime the refs exists in `.git/packed_ref`
+    const l:packed_ref = s:parse_packed_refs(l:git_dir .. '/' .. 'packed-refs', l:refs)
+    if !l:packed_ref.ok
+      return l:packed_ref
+    endif
+    return #{
+          \ ok: v:true,
+          \ value: #{
+          \   branch: l:branch_name,
+          \   commit: l:packed_ref.value,
+          \ }
+          \ }
+  endif
+  const l:commit_hash = readfile(l:refs_file)->get(0, v:null)
   if l:commit_hash ==# v:null
     return #{
           \ ok: v:false,
@@ -150,6 +166,33 @@ function s:get_current_revision_info(git_root) abort
         \   branch: l:branch_name,
         \   commit: l:commit_hash,
         \ }
+        \ }
+endfunction
+
+function s:parse_packed_refs(path, ref_name) abort
+  if !(a:path->filereadable())
+    return #{
+          \ ok: v:false,
+          \ err: a:path .. ' is not filereadable.'
+          \ }
+  endif
+  const l:separator = ' '
+  for l:line in readfile(a:path)
+    if l:line =~# '^#'
+      continue
+    endif
+    let l:separated = l:line->split(l:separator)
+    let l:ref_name = l:separated[1:]->join(l:separator)
+    if l:ref_name ==# a:ref_name
+      return #{
+            \ ok: v:true,
+            \ value: l:separated[0],
+            \ }
+    endif
+  endfor
+  return #{
+        \ ok: v:false,
+        \ err: a:ref_name .. ' is not matched in ' .. a:path
         \ }
 endfunction
 
