@@ -130,9 +130,10 @@ function s:get_current_revision_info(git_root) abort
           \ }
   endif
   if l:head_content !~ '^ref: '
+    " detached head
     return #{
-          \ ok: v:false,
-          \ err: 'HEAD file is not ref: refs/heads/... format.',
+          \ ok: v:true,
+          \ value: #{ branch_name: l:head_content, commit: l:head_content },
           \ }
   endif
   const l:branch_name = l:head_content->substitute('^ref: refs/heads/', '', '')
