@@ -179,11 +179,16 @@ function s:parse_packed_refs(path, ref_name) abort
   const l:separator = ' '
   for l:line in readfile(a:path)
     if l:line =~# '^#'
+      " NOTE: the line is comment
       continue
     endif
     let l:separated = l:line->split(l:separator)
-    let l:ref_name = l:separated[1:]->join(l:separator)
-    if l:ref_name ==# a:ref_name
+    if len(l:separated) < 2
+      " NOTE: unexpected line, the line should be `{{sha}} {{ref_name}}`
+      continue
+    endif
+    let l:parsed_ref = l:separated[1:]->join(l:separator)
+    if l:parsed_ref ==# a:ref_name
       return #{
             \ ok: v:true,
             \ value: l:separated[0],
