@@ -19,7 +19,7 @@ endfunction
 
 function! yank_remote_url#_internal_enable_auto_cache() abort
   " register auto-cache
-  augroup yank_remote_url_origin#internal_augroup
+  augroup yank_remote_url_origin.internal_augroup
     autocmd!
     autocmd BufEnter * call timer_start(0, { -> s:set_cache() })
   augroup END
